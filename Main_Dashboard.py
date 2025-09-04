@@ -370,17 +370,17 @@ kpi_data_7d = load_kpi_data_7d()
 col1, col2, col3= st.columns(3)
 
 col1.metric(
-    label="Total Bridges Volume",
+    label="Bridges Volume (7D)",
     value=f"${kpi_data_7d["Total Bridges Volume"][0]:,}"
 )
 
 col2.metric(
-    label="Total Numebr of Users",
+    label="Numebr of Users (7D)",
     value=f"{kpi_data_7d["Total Numebr of Users"][0]:,} Wallets"
 )
 
 col3.metric(
-    label="Total Number of Bridges",
+    label="Number of Bridges (7D)",
     value=f"{kpi_data_7d["Total Number of Bridges"][0]:,} Txns"
 )
 
@@ -495,17 +495,17 @@ kpi_data_30d = load_kpi_data_30d()
 col1, col2, col3= st.columns(3)
 
 col1.metric(
-    label="Total Bridges Volume",
+    label="Bridges Volume (30D)",
     value=f"${kpi_data_30d["Total Bridges Volume"][0]:,}"
 )
 
 col2.metric(
-    label="Total Numebr of Users",
+    label="Total Numebr of Users (30D)",
     value=f"{kpi_data_30d["Total Numebr of Users"][0]:,} Wallets"
 )
 
 col3.metric(
-    label="Total Number of Bridges",
+    label="Total Number of Bridges (30D)",
     value=f"{kpi_data_30d["Total Number of Bridges"][0]:,} Txns"
 )
 
