@@ -81,6 +81,15 @@ with col2:
 
 with col3:
     end_date = st.date_input("End Date", value=pd.to_datetime("2025-08-31"))
+
+st.markdown(
+    """
+    <div style="background-color:#fa54fd; padding:1px; border-radius:10px;">
+        <h2 style="color:#000000; text-align:center;">Overall Stats</h2>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 # --- Query Function: Row1 --------------------------------------------------------------------------------------
 @st.cache_data
 def load_kpi_data(timeframe, start_date, end_date):
