@@ -1318,7 +1318,7 @@ order by 2 desc
 
 # --------------------------------------
 @st.cache_data
-def load_amount_distribution(start_date, end_date):
+def load_volume_distribution(start_date, end_date):
     start_str = start_date.strftime("%Y-%m-%d")
     end_str = end_date.strftime("%Y-%m-%d")
 
