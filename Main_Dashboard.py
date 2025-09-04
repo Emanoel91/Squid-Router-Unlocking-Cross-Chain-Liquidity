@@ -259,7 +259,9 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-# --- Query Function: Row3 --------------------------------------------------------------------------------------
+
+st.info("🔔The KPIs below reflect data from the past 7 and 30 days, and the time range set at the top of the dashboard does not affect these KPIs.")
+# --- Query Function: Row3,4 --------------------------------------------------------------------------------------
 @st.cache_data
 def load_kpi_data_7d():
 
