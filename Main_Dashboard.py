@@ -752,7 +752,8 @@ with col1:
     fig_b1.update_layout(
         barmode="stack",
         title="Number of Users by Type Over Time",
-        yaxis=dict(title="Wallet count")
+        yaxis=dict(title="Wallet count"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
     )
     st.plotly_chart(fig_b1, use_container_width=True)
 
