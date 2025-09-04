@@ -1178,3 +1178,12 @@ fig_grouped = px.bar(
 )
 
 st.plotly_chart(fig_grouped, use_container_width=True)
+
+st.markdown(
+    """
+    <div style="background-color:#fa54fd; padding:1px; border-radius:10px;">
+        <h2 style="color:#000000; text-align:center;">Distribution</h2>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
