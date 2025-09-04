@@ -1159,6 +1159,7 @@ select source_chain as "Source Chain",
   else 'Old' end as "User Status",
   count(distinct a.user) as "Number of Users"
 from squid_bridge a left join first_tx b on a.created_at = b.first_timestamp
+where created_at::date>='{start_str}' and created_at::date<='{end_str}'
 group by 1, 2
 order by 3 desc 
     """
@@ -1187,3 +1188,314 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+# --- Row 9 -------------------------------------------------------------------------------------------------------------
+
+@st.cache_data
+def load_txn_distribution(start_date, end_date):
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    WITH overview as (
+WITH axelar_service AS (
+  
+  SELECT 
+    created_at, 
+    LOWER(data:send:original_source_chain) AS source_chain, 
+    LOWER(data:send:original_destination_chain) AS destination_chain,
+    recipient_address AS user, 
+
+    CASE 
+      WHEN IS_ARRAY(data:send:amount) THEN NULL
+      WHEN IS_OBJECT(data:send:amount) THEN NULL
+      WHEN TRY_TO_DOUBLE(data:send:amount::STRING) IS NOT NULL THEN TRY_TO_DOUBLE(data:send:amount::STRING)
+      ELSE NULL
+    END AS amount,
+
+    CASE 
+      WHEN IS_ARRAY(data:send:amount) OR IS_ARRAY(data:link:price) THEN NULL
+      WHEN IS_OBJECT(data:send:amount) OR IS_OBJECT(data:link:price) THEN NULL
+      WHEN TRY_TO_DOUBLE(data:send:amount::STRING) IS NOT NULL AND TRY_TO_DOUBLE(data:link:price::STRING) IS NOT NULL 
+        THEN TRY_TO_DOUBLE(data:send:amount::STRING) * TRY_TO_DOUBLE(data:link:price::STRING)
+      ELSE NULL
+    END AS amount_usd,
+
+    CASE 
+      WHEN IS_ARRAY(data:send:fee_value) THEN NULL
+      WHEN IS_OBJECT(data:send:fee_value) THEN NULL
+      WHEN TRY_TO_DOUBLE(data:send:fee_value::STRING) IS NOT NULL THEN TRY_TO_DOUBLE(data:send:fee_value::STRING)
+      ELSE NULL
+    END AS fee,
+
+    id, 
+    'Token Transfers' AS "Service", 
+    data:link:asset::STRING AS raw_asset
+
+  FROM axelar.axelscan.fact_transfers
+  WHERE status = 'executed'
+    AND simplified_status = 'received'
+    AND (
+    sender_address ilike '%0xce16F69375520ab01377ce7B88f5BA8C48F8D666%' -- Squid
+    or sender_address ilike '%0x492751eC3c57141deb205eC2da8bFcb410738630%' -- Squid-blast
+    or sender_address ilike '%0xDC3D8e1Abe590BCa428a8a2FC4CfDbD1AcF57Bd9%' -- Squid-fraxtal
+    or sender_address ilike '%0xdf4fFDa22270c12d0b5b3788F1669D709476111E%' -- Squid coral
+    or sender_address ilike '%0xe6B3949F9bBF168f4E3EFc82bc8FD849868CC6d8%' -- Squid coral hub
+) 
+
+  UNION ALL
+
+  SELECT  
+    created_at,
+    LOWER(data:call.chain::STRING) AS source_chain,
+    LOWER(data:call.returnValues.destinationChain::STRING) AS destination_chain,
+    data:call.transaction.from::STRING AS user,
+
+    CASE 
+      WHEN IS_ARRAY(data:amount) OR IS_OBJECT(data:amount) THEN NULL
+      WHEN TRY_TO_DOUBLE(data:amount::STRING) IS NOT NULL THEN TRY_TO_DOUBLE(data:amount::STRING)
+      ELSE NULL
+    END AS amount,
+
+    CASE 
+      WHEN IS_ARRAY(data:value) OR IS_OBJECT(data:value) THEN NULL
+      WHEN TRY_TO_DOUBLE(data:value::STRING) IS NOT NULL THEN TRY_TO_DOUBLE(data:value::STRING)
+      ELSE NULL
+    END AS amount_usd,
+
+    COALESCE(
+      CASE 
+        WHEN IS_ARRAY(data:gas:gas_used_amount) OR IS_OBJECT(data:gas:gas_used_amount) 
+          OR IS_ARRAY(data:gas_price_rate:source_token.token_price.usd) OR IS_OBJECT(data:gas_price_rate:source_token.token_price.usd) 
+        THEN NULL
+        WHEN TRY_TO_DOUBLE(data:gas:gas_used_amount::STRING) IS NOT NULL 
+          AND TRY_TO_DOUBLE(data:gas_price_rate:source_token.token_price.usd::STRING) IS NOT NULL 
+        THEN TRY_TO_DOUBLE(data:gas:gas_used_amount::STRING) * TRY_TO_DOUBLE(data:gas_price_rate:source_token.token_price.usd::STRING)
+        ELSE NULL
+      END,
+      CASE 
+        WHEN IS_ARRAY(data:fees:express_fee_usd) OR IS_OBJECT(data:fees:express_fee_usd) THEN NULL
+        WHEN TRY_TO_DOUBLE(data:fees:express_fee_usd::STRING) IS NOT NULL THEN TRY_TO_DOUBLE(data:fees:express_fee_usd::STRING)
+        ELSE NULL
+      END
+    ) AS fee,
+
+    id, 
+    'GMP' AS "Service", 
+    data:symbol::STRING AS raw_asset
+
+  FROM axelar.axelscan.fact_gmp 
+  WHERE status = 'executed'
+    AND simplified_status = 'received'
+    AND (
+        data:approved:returnValues:contractAddress ilike '%0xce16F69375520ab01377ce7B88f5BA8C48F8D666%' -- Squid
+        or data:approved:returnValues:contractAddress ilike '%0x492751eC3c57141deb205eC2da8bFcb410738630%' -- Squid-blast
+        or data:approved:returnValues:contractAddress ilike '%0xDC3D8e1Abe590BCa428a8a2FC4CfDbD1AcF57Bd9%' -- Squid-fraxtal
+        or data:approved:returnValues:contractAddress ilike '%0xdf4fFDa22270c12d0b5b3788F1669D709476111E%' -- Squid coral
+        or data:approved:returnValues:contractAddress ilike '%0xe6B3949F9bBF168f4E3EFc82bc8FD849868CC6d8%' -- Squid coral hub
+        ) 
+)
+
+SELECT user, count(distinct id), case 
+when count(distinct id)=1 then 'A:1 Txn'
+when count(distinct id)>=2 and count(distinct id)<=5 then 'B: 2-5 Txns'
+when count(distinct id)>=6 and count(distinct id)<=10 then 'C: 6-10 Txns'
+when count(distinct id)>=11 and count(distinct id)<=20 then 'D: 11-20 Txns'
+when count(distinct id)>=21 and count(distinct id)<=100 then 'E: 21-100 Txns'
+when count(distinct id)>100 then 'F: >100 Txns'
+end as "Number of Txns"
+FROM axelar_service
+where created_at::date>='{start_str}' and created_at::date<='{end_str}'
+group by 1)
+
+select "Number of Txns", count(distinct user) as "Number of Users"
+from overview
+group by 1
+order by 2 desc 
+
+    """
+
+    return pd.read_sql(query, conn)
+
+# --------------------------------------
+@st.cache_data
+def load_amount_distribution(start_date, end_date):
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    WITH overview as (
+WITH axelar_service AS (
+  
+  SELECT 
+    created_at, 
+    LOWER(data:send:original_source_chain) AS source_chain, 
+    LOWER(data:send:original_destination_chain) AS destination_chain,
+    recipient_address AS user, 
+
+    CASE 
+      WHEN IS_ARRAY(data:send:amount) THEN NULL
+      WHEN IS_OBJECT(data:send:amount) THEN NULL
+      WHEN TRY_TO_DOUBLE(data:send:amount::STRING) IS NOT NULL THEN TRY_TO_DOUBLE(data:send:amount::STRING)
+      ELSE NULL
+    END AS amount,
+
+    CASE 
+      WHEN IS_ARRAY(data:send:amount) OR IS_ARRAY(data:link:price) THEN NULL
+      WHEN IS_OBJECT(data:send:amount) OR IS_OBJECT(data:link:price) THEN NULL
+      WHEN TRY_TO_DOUBLE(data:send:amount::STRING) IS NOT NULL AND TRY_TO_DOUBLE(data:link:price::STRING) IS NOT NULL 
+        THEN TRY_TO_DOUBLE(data:send:amount::STRING) * TRY_TO_DOUBLE(data:link:price::STRING)
+      ELSE NULL
+    END AS amount_usd,
+
+    CASE 
+      WHEN IS_ARRAY(data:send:fee_value) THEN NULL
+      WHEN IS_OBJECT(data:send:fee_value) THEN NULL
+      WHEN TRY_TO_DOUBLE(data:send:fee_value::STRING) IS NOT NULL THEN TRY_TO_DOUBLE(data:send:fee_value::STRING)
+      ELSE NULL
+    END AS fee,
+
+    id, 
+    'Token Transfers' AS "Service", 
+    data:link:asset::STRING AS raw_asset
+
+  FROM axelar.axelscan.fact_transfers
+  WHERE status = 'executed'
+    AND simplified_status = 'received'
+    AND (
+    sender_address ilike '%0xce16F69375520ab01377ce7B88f5BA8C48F8D666%' -- Squid
+    or sender_address ilike '%0x492751eC3c57141deb205eC2da8bFcb410738630%' -- Squid-blast
+    or sender_address ilike '%0xDC3D8e1Abe590BCa428a8a2FC4CfDbD1AcF57Bd9%' -- Squid-fraxtal
+    or sender_address ilike '%0xdf4fFDa22270c12d0b5b3788F1669D709476111E%' -- Squid coral
+    or sender_address ilike '%0xe6B3949F9bBF168f4E3EFc82bc8FD849868CC6d8%' -- Squid coral hub
+) 
+
+  UNION ALL
+
+  SELECT  
+    created_at,
+    LOWER(data:call.chain::STRING) AS source_chain,
+    LOWER(data:call.returnValues.destinationChain::STRING) AS destination_chain,
+    data:call.transaction.from::STRING AS user,
+
+    CASE 
+      WHEN IS_ARRAY(data:amount) OR IS_OBJECT(data:amount) THEN NULL
+      WHEN TRY_TO_DOUBLE(data:amount::STRING) IS NOT NULL THEN TRY_TO_DOUBLE(data:amount::STRING)
+      ELSE NULL
+    END AS amount,
+
+    CASE 
+      WHEN IS_ARRAY(data:value) OR IS_OBJECT(data:value) THEN NULL
+      WHEN TRY_TO_DOUBLE(data:value::STRING) IS NOT NULL THEN TRY_TO_DOUBLE(data:value::STRING)
+      ELSE NULL
+    END AS amount_usd,
+
+    COALESCE(
+      CASE 
+        WHEN IS_ARRAY(data:gas:gas_used_amount) OR IS_OBJECT(data:gas:gas_used_amount) 
+          OR IS_ARRAY(data:gas_price_rate:source_token.token_price.usd) OR IS_OBJECT(data:gas_price_rate:source_token.token_price.usd) 
+        THEN NULL
+        WHEN TRY_TO_DOUBLE(data:gas:gas_used_amount::STRING) IS NOT NULL 
+          AND TRY_TO_DOUBLE(data:gas_price_rate:source_token.token_price.usd::STRING) IS NOT NULL 
+        THEN TRY_TO_DOUBLE(data:gas:gas_used_amount::STRING) * TRY_TO_DOUBLE(data:gas_price_rate:source_token.token_price.usd::STRING)
+        ELSE NULL
+      END,
+      CASE 
+        WHEN IS_ARRAY(data:fees:express_fee_usd) OR IS_OBJECT(data:fees:express_fee_usd) THEN NULL
+        WHEN TRY_TO_DOUBLE(data:fees:express_fee_usd::STRING) IS NOT NULL THEN TRY_TO_DOUBLE(data:fees:express_fee_usd::STRING)
+        ELSE NULL
+      END
+    ) AS fee,
+
+    id, 
+    'GMP' AS "Service", 
+    data:symbol::STRING AS raw_asset
+
+  FROM axelar.axelscan.fact_gmp 
+  WHERE status = 'executed'
+    AND simplified_status = 'received'
+    AND (
+        data:approved:returnValues:contractAddress ilike '%0xce16F69375520ab01377ce7B88f5BA8C48F8D666%' -- Squid
+        or data:approved:returnValues:contractAddress ilike '%0x492751eC3c57141deb205eC2da8bFcb410738630%' -- Squid-blast
+        or data:approved:returnValues:contractAddress ilike '%0xDC3D8e1Abe590BCa428a8a2FC4CfDbD1AcF57Bd9%' -- Squid-fraxtal
+        or data:approved:returnValues:contractAddress ilike '%0xdf4fFDa22270c12d0b5b3788F1669D709476111E%' -- Squid coral
+        or data:approved:returnValues:contractAddress ilike '%0xe6B3949F9bBF168f4E3EFc82bc8FD849868CC6d8%' -- Squid coral hub
+        ) 
+)
+
+SELECT id, case 
+when amount_usd<=10 then 'A: V<=$10'
+When amount_usd>10 and amount_usd<=100 then 'B: $10<V<=$100'
+When amount_usd>100 and amount_usd<=1000 then 'C: $100<V<=$1K'
+When amount_usd>1000 and amount_usd<=10000 then 'D: $1K<V<=$10K'
+When amount_usd>10000 and amount_usd<=100000 then 'E: $10K<V<=$100K'
+When amount_usd>100000 then 'F: V>$100K'
+end as "Bridge Amount"
+FROM axelar_service
+where amount_usd is not null
+and created_at::date>='{start_str}' and created_at::date<='{end_str}')
+
+select "Bridge Amount", count(distinct id) as "Number of Transactions"
+from overview
+group by 1
+order by 2 desc 
+
+    """
+
+    return pd.read_sql(query, conn)
+
+# --- Load Data --------------------------------------------------------------------------------------
+txn_distribution = load_txn_distribution(start_date, end_date)
+volume_distribution = load_volume_distribution(start_date, end_date)
+# ----------------------------------------------------------------------------------------------------
+color_scale = {
+    'A: V<=$10': '#f3df6b',       
+    'B: $10<V<=$100': '#f3c36b',
+    'C: $100<V<=$1K': '#f3a86b',
+    'D: $1K<V<=$10K': '#f3946b',
+    'E: $10K<V<=$100K': '#f36b6b',
+    'F: V>$100K': '#e3530b'
+}
+
+fig_donut_volume = px.pie(
+    volume_distribution,
+    names="Bridge Amount",
+    values="Number of Transactions",
+    title="Distribution of Bridges by Amount",
+    hole=0.5,
+    color="Bridge Amount",
+    color_discrete_map=color_scale
+)
+
+fig_donut_volume.update_traces(textposition='outside', textinfo='percent+label', pull=[0.05]*len(volume_distribution))
+fig_donut_volume.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
+
+# ---------------------------------------
+color_scale = {
+    'A:1 Txn': '#f3df6b',       
+    'B: 2-5 Txns': '#f3c36b',
+    'C: 6-10 Txns': '#f3a86b',
+    'D: 11-20 Txns': '#f3946b',
+    'E: 21-100 Txns': '#f36b6b',
+    'F: >100 Txns': '#e3530b'
+}
+
+fig_donut_txn = px.pie(
+    txn_distribution,
+    names="Number of Txns",
+    values="Number of Users",
+    title="Distribution of Users by Number of Bridge Transaction",
+    hole=0.5,
+    color="Number of Txns",
+    color_discrete_map=color_scale
+)
+
+fig_donut_txn.update_traces(textposition='outside', textinfo='percent+label', pull=[0.05]*len(txn_distribution))
+fig_donut_txn.update_layout(showlegend=True, legend=dict(orientation="v", y=0.5, x=1.1))
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.plotly_chart(fig_donut_volume, use_container_width=True)
+
+with col2:
+    st.plotly_chart(fig_donut_txn, use_container_width=True)
