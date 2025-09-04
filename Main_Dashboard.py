@@ -876,7 +876,7 @@ with col1:
     # Line for Total Bridgors
     fig_b1.add_trace(go.Scatter(
         x=df_brg["Date"], y=df_brg["Total Bridgors"], name="Total Bridgors",
-        mode="lines+markers", line=dict(color="black", width=2)
+        mode="lines", line=dict(color="black", width=2)
     ))
     fig_b1.update_layout(
         barmode="stack",
@@ -894,6 +894,6 @@ with col2:
     color="User Status",
     title="Bridge Volume by User Type Over Time"
     )
-    fig_stacked.update_layout(barmode="stack", yaxis_title="$USD")
+    fig_stacked.update_layout(barmode="stack", yaxis_title="$USD",legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5))
     st.plotly_chart(fig_stacked, use_container_width=True)
 
