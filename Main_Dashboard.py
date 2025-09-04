@@ -647,3 +647,123 @@ with col2:
     )
     st.plotly_chart(fig2, use_container_width=True)
 
+# --- Row 6 --------------------------------------------------------------------------------------------------------------
+@st.cache_data
+def load_bridgors_data(timeframe, start_date, end_date):
+    start_str = start_date.strftime("%Y-%m-%d")
+    end_str = end_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    with table1 as (
+        WITH axelar_service AS (
+            SELECT created_at, recipient_address AS user
+            FROM axelar.axelscan.fact_transfers
+            WHERE status = 'executed' AND simplified_status = 'received'
+              AND (
+                sender_address ilike '%0xce16F69375520ab01377ce7B88f5BA8C48F8D666%' 
+                OR sender_address ilike '%0x492751eC3c57141deb205eC2da8bFcb410738630%' 
+                OR sender_address ilike '%0xDC3D8e1Abe590BCa428a8a2FC4CfDbD1AcF57Bd9%' 
+                OR sender_address ilike '%0xdf4fFDa22270c12d0b5b3788F1669D709476111E%' 
+                OR sender_address ilike '%0xe6B3949F9bBF168f4E3EFc82bc8FD849868CC6d8%'
+              )
+            UNION ALL
+            SELECT created_at, data:call.transaction.from::STRING AS user
+            FROM axelar.axelscan.fact_gmp 
+            WHERE status = 'executed' AND simplified_status = 'received'
+              AND (
+                data:approved:returnValues:contractAddress ilike '%0xce16F69375520ab01377ce7B88f5BA8C48F8D666%' 
+                OR data:approved:returnValues:contractAddress ilike '%0x492751eC3c57141deb205eC2da8bFcb410738630%' 
+                OR data:approved:returnValues:contractAddress ilike '%0xDC3D8e1Abe590BCa428a8a2FC4CfDbD1AcF57Bd9%' 
+                OR data:approved:returnValues:contractAddress ilike '%0xdf4fFDa22270c12d0b5b3788F1669D709476111E%' 
+                OR data:approved:returnValues:contractAddress ilike '%0xe6B3949F9bBF168f4E3EFc82bc8FD849868CC6d8%'
+              )
+        )
+        SELECT 
+            date_trunc('{timeframe}', created_at) as "Date",
+            count(distinct user) as "Total Bridgors"
+        FROM axelar_service
+        WHERE created_at::date >= '{start_str}'
+          AND created_at::date <= '{end_str}'
+        GROUP BY 1
+    ), 
+
+    table2 as (
+        with tab1 as (
+            WITH axelar_service AS (
+                SELECT created_at, recipient_address AS user
+                FROM axelar.axelscan.fact_transfers
+                WHERE status = 'executed' AND simplified_status = 'received'
+                  AND (
+                    sender_address ilike '%0xce16F69375520ab01377ce7B88f5BA8C48F8D666%' 
+                    OR sender_address ilike '%0x492751eC3c57141deb205eC2da8bFcb410738630%' 
+                    OR sender_address ilike '%0xDC3D8e1Abe590BCa428a8a2FC4CfDbD1AcF57Bd9%' 
+                    OR sender_address ilike '%0xdf4fFDa22270c12d0b5b3788F1669D709476111E%' 
+                    OR sender_address ilike '%0xe6B3949F9bBF168f4E3EFc82bc8FD849868CC6d8%'
+                  )
+                UNION ALL
+                SELECT created_at, data:call.transaction.from::STRING AS user
+                FROM axelar.axelscan.fact_gmp 
+                WHERE status = 'executed' AND simplified_status = 'received'
+                  AND (
+                    data:approved:returnValues:contractAddress ilike '%0xce16F69375520ab01377ce7B88f5BA8C48F8D666%' 
+                    OR data:approved:returnValues:contractAddress ilike '%0x492751eC3c57141deb205eC2da8bFcb410738630%' 
+                    OR data:approved:returnValues:contractAddress ilike '%0xDC3D8e1Abe590BCa428a8a2FC4CfDbD1AcF57Bd9%' 
+                    OR data:approved:returnValues:contractAddress ilike '%0xdf4fFDa22270c12d0b5b3788F1669D709476111E%' 
+                    OR data:approved:returnValues:contractAddress ilike '%0xe6B3949F9bBF168f4E3EFc82bc8FD849868CC6d8%'
+                  )
+            )
+            SELECT user, min(created_at::date) as first_date
+            FROM axelar_service
+            GROUP BY 1
+        )
+        SELECT date_trunc('{timeframe}', first_date) as "Date", count(distinct user) as "New Bridgors"
+        FROM tab1
+        WHERE first_date >= '{start_str}' AND first_date <= '{end_str}'
+        GROUP BY 1
+    )
+
+    SELECT 
+        t1."Date" as "Date", 
+        "Total Bridgors", 
+        "New Bridgors", 
+        "Total Bridgors" - "New Bridgors" as "Returning Bridgors",
+        sum("New Bridgors") over (order by t1."Date") as "Bridgors Growth"
+    FROM table1 t1
+    LEFT JOIN table2 t2 ON t1."Date" = t2."Date"
+    ORDER BY 1
+    """
+    return pd.read_sql(query, conn)
+
+df_brg = load_bridgors_data(timeframe, start_date, end_date)
+
+# --- Row (4): Charts ------------------------------------------------------------------------------------------------------
+col1, col2 = st.columns(2)
+
+with col1:
+    fig_b1 = go.Figure()
+    # Stacked Bars
+    fig_b1.add_trace(go.Bar(x=df_brg["Date"], y=df_brg["New Bridgors"], name="New Bridgors"))
+    fig_b1.add_trace(go.Bar(x=df_brg["Date"], y=df_brg["Returning Bridgors"], name="Returning Bridgors"))
+    # Line for Total Bridgors
+    fig_b1.add_trace(go.Scatter(
+        x=df_brg["Date"], y=df_brg["Total Bridgors"], name="Total Bridgors",
+        mode="lines+markers", line=dict(color="black", width=2)
+    ))
+    fig_b1.update_layout(
+        barmode="stack",
+        title="Number of Users by Type Over Time",
+        yaxis=dict(title="Wallet count")
+    )
+    st.plotly_chart(fig_b1, use_container_width=True)
+
+with col2:
+    fig_b2 = go.Figure()
+    fig_b2.add_trace(go.Bar(
+        x=df_brg["Date"], y=df_brg["Bridgors Growth"], name="Bridgors Growth"
+    ))
+    fig_b2.update_layout(
+        title="Total New Bridgors Over Time",
+        yaxis=dict(title="Address count")
+    )
+    st.plotly_chart(fig_b2, use_container_width=True)
+
