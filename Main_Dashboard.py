@@ -844,7 +844,7 @@ SELECT created_at, id, user, amount_usd
 FROM axelar_service),
 
 first_tx as (
-select user, min(created_at::date) as first_timestamp
+select user, min(created_at) as first_timestamp
 from squid_bridge
 group by 1)
 
