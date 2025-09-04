@@ -240,7 +240,7 @@ col3.metric(
 col4.metric(
     label="Average Bridge Amount",
     value=f"${df_kpi["Average Bridge Amount"][0]:,}"
-))
+)
 
 # --- Query Function: Row (2) --------------------------------------------------------------------------------------
 @st.cache_data
