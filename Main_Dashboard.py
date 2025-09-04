@@ -1687,7 +1687,7 @@ fig1 = px.pie(
     df_pie_symbol, 
     values="SWAP_VOLUME",    
     names="SYMBOL",    
-    title="Swap Volume By Token ($USD)"
+    title="Distribution of bridges Volume by Tokens"
 )
 fig1.update_traces(textinfo="percent+label", textposition="inside", automargin=True)
 
@@ -1696,7 +1696,7 @@ fig2 = px.pie(
     df_pie_symbol, 
     values="SWAP_COUNT",     
     names="SYMBOL",    
-    title="Swap Count By Token"
+    title="Distribution of Number of Bridge by Tokens"
 )
 fig2.update_traces(textinfo="percent+label", textposition="inside", automargin=True)
 
