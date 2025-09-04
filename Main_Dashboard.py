@@ -899,7 +899,7 @@ with col2:
     
 # --- Row 7 ---------------------------------------------------------------------------------------------------------------
 @st.cache_data
-def load_bridge_data_volume_by_user_status(timeframe, start_date, end_date):
+def load_bridge_data_volume_by_user_status(start_date, end_date):
     start_str = start_date.strftime("%Y-%m-%d")
     end_str = end_date.strftime("%Y-%m-%d")
 
@@ -1017,6 +1017,7 @@ select
   else 'Returning Users' end as "User Status",
   round(sum(amount_usd)) as "Bridge Amount"
 from squid_bridge a left join first_tx b on a.created_at = b.first_timestamp
+where created_at::date>='{Start_str}' and created_at::date<='{end_str}'
 group by 1
     """
     return pd.read_sql(query, conn)
