@@ -894,6 +894,6 @@ with col2:
     color="User Status",
     title="Bridge Volume by User Type Over Time"
     )
-    fig_stacked.update_layout(barmode="stack", yaxis_title="$USD",legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, title=None))
+    fig_stacked.update_layout(barmode="stack", xaxis_title="", yaxis_title="$USD",legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, title=None))
     st.plotly_chart(fig_stacked, use_container_width=True)
 
