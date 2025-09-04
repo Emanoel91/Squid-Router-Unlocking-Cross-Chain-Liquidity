@@ -1017,7 +1017,7 @@ select
   else 'Returning Users' end as "User Status",
   round(sum(amount_usd)) as "Bridge Amount"
 from squid_bridge a left join first_tx b on a.created_at = b.first_timestamp
-where created_at::date>='{Start_str}' and created_at::date<='{end_str}'
+where created_at::date>='{start_str}' and created_at::date<='{end_str}'
 group by 1
     """
     return pd.read_sql(query, conn)
