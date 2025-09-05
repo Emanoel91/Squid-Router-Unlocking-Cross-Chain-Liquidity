@@ -1228,7 +1228,7 @@ fig_grouped = px.bar(
     color="User Status",
     barmode="group",
     title="Number of New Vs Old Users Who bridged from Source Chain",
-    color_discrete_map={"New Users": "yellow", "Returning Users": "red"}
+    color_discrete_map={"New": "yellow", "Old": "red"}
 )
 
 st.plotly_chart(fig_grouped, use_container_width=True)
