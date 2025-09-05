@@ -660,7 +660,7 @@ with col2:
         y=df_chart["Bridge Amount"], 
         name="Bridge Amount", 
         yaxis="y1",
-        marker_color="teal"   
+        marker_color="yellow"   
     ))
 
     
@@ -670,7 +670,7 @@ with col2:
         name="Median Bridge Amount", 
         mode="lines", 
         yaxis="y2",
-        line=dict(color="crimson", width=2, dash="solid")  
+        line=dict(color="red", width=2, dash="solid")  
     ))
 
     fig2.update_layout(
