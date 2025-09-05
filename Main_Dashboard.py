@@ -906,12 +906,12 @@ col1, col2 = st.columns(2)
 with col1:
     fig_b1 = go.Figure()
     # Stacked Bars
-    fig_b1.add_trace(go.Bar(x=df_brg["Date"], y=df_brg["New Bridgors"], name="New Bridgors"))
-    fig_b1.add_trace(go.Bar(x=df_brg["Date"], y=df_brg["Returning Bridgors"], name="Returning Bridgors"))
+    fig_b1.add_trace(go.Bar(x=df_brg["Date"], y=df_brg["New Bridgors"], name="New Users", marker_color="yellow"))
+    fig_b1.add_trace(go.Bar(x=df_brg["Date"], y=df_brg["Returning Bridgors"], name="Returning Users", marker_color="red"))
     # Line for Total Bridgors
     fig_b1.add_trace(go.Scatter(
-        x=df_brg["Date"], y=df_brg["Total Bridgors"], name="Total Bridgors",
-        mode="lines", line=dict(color="black", width=2)
+        x=df_brg["Date"], y=df_brg["Total Bridgors"], name="Total Users",
+        mode="lines", line=dict(color="blue", width=2)
     ))
     fig_b1.update_layout(
         barmode="stack",
@@ -923,13 +923,29 @@ with col1:
 
 with col2:
     fig_stacked = px.bar(
-    df_brg_vol,
-    x="Date",
-    y="Bridge Amount",
-    color="User Status",
-    title="Bridge Volume by User Type Over Time"
+        df_brg_vol,
+        x="Date",
+        y="Bridge Amount",
+        color="User Status",
+        title="Bridge Volume by User Type Over Time",
+        color_discrete_map={
+            "New Bridgors": "yellow",
+            "Returning Bridgors": "red"
+        }
     )
-    fig_stacked.update_layout(barmode="stack", xaxis_title="", yaxis_title="$USD",legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, title=None))
+    fig_stacked.update_layout(
+        barmode="stack", 
+        xaxis_title="", 
+        yaxis_title="$USD",
+        legend=dict(
+            orientation="h", 
+            yanchor="bottom", 
+            y=1.02, 
+            xanchor="center", 
+            x=0.5, 
+            title=None
+        )
+    )
     st.plotly_chart(fig_stacked, use_container_width=True)
     
 # --- Row 7 ---------------------------------------------------------------------------------------------------------------
