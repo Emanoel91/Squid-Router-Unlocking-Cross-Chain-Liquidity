@@ -1082,12 +1082,14 @@ df_percent = df_brg_vol.copy()
 monthly_total = df_percent.groupby("Date")["Bridge Amount"].transform("sum")
 df_percent["Percentage"] = df_percent["Bridge Amount"] / monthly_total * 100
 fig_normalized = px.bar(df_percent, x="Date", y="Percentage", color="User Status",
-                        title="Share of Bridge Volume by User Type", barmode="stack")
+                        title="Share of Bridge Volume by User Type", barmode="stack"و color_discrete_map={"New Users": "yellow", "Returning Users": "red"}
+                        )
 col1.plotly_chart(fig_normalized)
 
 summary = bridge_data_volume_by_user_status.groupby("User Status")["Bridge Amount"].sum().reset_index()
 fig_pie = px.pie(summary, names="User Status", values="Bridge Amount",
-                 title="Distribution of Bridge Volume by User Type")
+                 title="Distribution of Bridge Volume by User Type", color="User Status", color_discrete_map={"New Users": "yellow", "Returning Users": "red"}
+                 )
 col2.plotly_chart(fig_pie)
 
 # --- Row 8 ---------------------------------------------------------------------------------------------------------------
