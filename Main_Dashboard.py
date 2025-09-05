@@ -929,8 +929,8 @@ with col2:
         color="User Status",
         title="Bridge Volume by User Type Over Time",
         color_discrete_map={
-            "New Bridgors": "yellow",
-            "Returning Bridgors": "red"
+            "New Users": "yellow",
+            "Returning Users": "red"
         }
     )
     fig_stacked.update_layout(
