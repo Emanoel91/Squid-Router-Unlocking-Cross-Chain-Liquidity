@@ -625,26 +625,61 @@ col1, col2 = st.columns(2)
 
 with col1:
     fig1 = go.Figure()
-    fig1.add_trace(go.Bar(x=df_chart["Date"], y=df_chart["Bridges"], name="Bridges", yaxis="y1"))
-    fig1.add_trace(go.Scatter(x=df_chart["Date"], y=df_chart["Users"], name="Users", mode="lines", yaxis="y2"))
+    
+    fig1.add_trace(go.Bar(
+        x=df_chart["Date"], 
+        y=df_chart["Bridges"], 
+        name="Bridges", 
+        yaxis="y1",
+        marker_color="yellow"   
+    ))
+
+    fig1.add_trace(go.Scatter(
+        x=df_chart["Date"], 
+        y=df_chart["Users"], 
+        name="Users", 
+        mode="lines", 
+        yaxis="y2",
+        line=dict(color="red", width=2, dash="solid")  
+    ))
+
     fig1.update_layout(
         title="Number of Bridges & Users Over Time",
         yaxis=dict(title="Txns count"),
         yaxis2=dict(title="Wallet count", overlaying="y", side="right"),
         barmode="group"
     )
+    
     st.plotly_chart(fig1, use_container_width=True)
 
 with col2:
     fig2 = go.Figure()
-    fig2.add_trace(go.Bar(x=df_chart["Date"], y=df_chart["Bridge Amount"], name="Bridge Amount", yaxis="y1"))
-    fig2.add_trace(go.Scatter(x=df_chart["Date"], y=df_chart["Median Bridge Amount"], name="Median Bridge Amount", mode="lines", yaxis="y2"))
+    
+    fig2.add_trace(go.Bar(
+        x=df_chart["Date"], 
+        y=df_chart["Bridge Amount"], 
+        name="Bridge Amount", 
+        yaxis="y1",
+        marker_color="teal"   
+    ))
+
+    
+    fig2.add_trace(go.Scatter(
+        x=df_chart["Date"], 
+        y=df_chart["Median Bridge Amount"], 
+        name="Median Bridge Amount", 
+        mode="lines", 
+        yaxis="y2",
+        line=dict(color="crimson", width=2, dash="solid")  
+    ))
+
     fig2.update_layout(
         title="Bridge Volume and Median Bridge Amount Over Time",
         yaxis=dict(title="$USD"),
         yaxis2=dict(title="$USD", overlaying="y", side="right"),
         barmode="group"
     )
+    
     st.plotly_chart(fig2, use_container_width=True)
 
 # --- Row 6,left --------------------------------------------------------------------------------------------------------------
